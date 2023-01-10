@@ -1,28 +1,41 @@
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC ,useEffect,useState} from 'react';
 import { Image, Text, View,StyleSheet } from 'react-native';
 import { formatearCantidad } from '../helpers';
 import { stylesGlobal } from '../styles';
-import { IGastos} from '../interfaces';
+import CircularProgress from 'react-native-circular-progress-indicator'
 
 interface Props {
-  gastos:IGastos[],
-  presupuesto:number
+  presupuesto:number,
+  disponible: number,
+  gastado: number
 }
 
-export const ControlPresupuesto :FC<Props> = ({presupuesto,gastos}:Props) => {
-  const [disponible, setDisponible] = useState<number>(0);
-  const [gastado, setGastado] = useState<number>(0);
+export const ControlPresupuesto :FC<Props> = ({presupuesto,disponible,gastado}:Props) => {
+  const [value, setValue] = useState(0);
 
-  useEffect(() => {
-    const totalGastado = gastos.reduce((total,gasto)=>gasto.cantidad+total,0);
-    setDisponible(presupuesto-totalGastado);
-    setGastado(totalGastado);
-  }, [gastos])
-
+  useEffect(()=>{
+    if (presupuesto>0) { 
+      
+      setValue(((presupuesto-disponible)/presupuesto)*100)
+    }
+  },[presupuesto,disponible])
+ 
   return (
    <View style={styles.container} >
       <View style={styles.container_graphic}>
-        <Image style={styles.img} source={ require('../img/grafico.jpg')} />
+        <CircularProgress
+          value={value}
+          duration={1000}
+          radius={150}
+          valueSuffix={'%'}
+          title={'Gastado'}
+          inActiveStrokeColor={'#f5f5f5'}
+          inActiveStrokeWidth={20}
+          activeStrokeColor={'#3b82f6'}
+          activeStrokeWidth={20}
+          titleStyle={{fontWeight:'bold',fontSize:20}}
+          titleColor={'#64748B'}
+        />
       </View>
 
       <View style={styles.container_text}>

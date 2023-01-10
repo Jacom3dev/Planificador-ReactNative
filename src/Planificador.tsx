@@ -1,20 +1,25 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import { View, StyleSheet, Alert, Pressable, Image, Modal, Text, ScrollView } from 'react-native';
 import { ControlPresupuesto, Formulario, Header, ListadoGastos, Presupuesto } from './components';
-import { IGastos,IGasto} from './interfaces';
+import {IGasto} from './interfaces';
 
 
 export const Planificador : FC = () => {
   const [presupuesto, setPresupuesto] = useState<number>(0);
   const [isValid, setisValid] = useState<boolean>(false);
-  const [gastos, setGastos] = useState<IGastos[]>([]);
+  const [gastos, setGastos] = useState<IGasto[]>([]);
   const [gasto, setGasto] = useState<IGasto>({
+    id: '',
     name:'',
     cantidad:0,
-    categoria:''
+    categoria:'',
+    date: new Date
   });
   const [modal, setModal] = useState<boolean>(false);
+  const [disponible, setDisponible] = useState<number>(0);
+  const [gastado, setGastado] = useState<number>(0);
 
+  
 
   const handlePresupuesto = (presupuesto:number) =>{
     if (presupuesto>0) {
@@ -25,20 +30,50 @@ export const Planificador : FC = () => {
   }
 
 
-  const handleGasto = (gasto:IGasto)=>{
-    if (Object.values(gasto).includes('')) {
+  const handleGasto = (gasto:IGasto)=>{  
+    if (Object.values(gasto).slice(1).includes('')) {
       Alert.alert('Error','Todos los campos son obligatorios',[{text:'Ok'}]);
+      return;
+    }
+    if (gasto.cantidad>disponible) {
+      Alert.alert('Error','No tienes dinero suficiente',[{text:'Ok'}]);
+      return;
+    }
+    
+    if (gasto.id) {        
+      setGastos(gastos.map(g=>g.id == gasto.id?gasto:g));
     }else {
       const ramdom  = Math.random().toString(36).substring(2,11);
-      setGastos([...gastos,{id:ramdom,...gasto}]);
-      setGasto({
-        name:'',
-        cantidad:0,
-        categoria:''
-      })
-      setModal(false);
+      setGastos([...gastos,{...gasto,id:ramdom}]);
     }
+    setModal(false);
+    setGasto({
+      id: '',
+      name:'',
+      cantidad:0,
+      categoria:'',
+      date: new Date
+    })
   }
+
+  const deleteGasto = (id:string)=>{
+    setGastos(gastos.filter(g=>g.id != id));
+    setGasto({
+      id: '',
+      name:'',
+      cantidad:0,
+      categoria:'',
+      date: new Date
+    })
+    setModal(false);
+
+  }
+
+  useEffect(() => {
+    const totalGastado = gastos.reduce((total,gasto)=>gasto.cantidad+total,0);
+    setDisponible(presupuesto-totalGastado);  
+    setGastado(totalGastado);
+  }, [gastos,presupuesto])
 
   return (
     <View style={styles.container}>
@@ -47,7 +82,7 @@ export const Planificador : FC = () => {
         <View style={styles.header}>
           <Header/>
           {isValid
-            ?<ControlPresupuesto gastos={gastos} presupuesto={presupuesto}/>
+            ?<ControlPresupuesto presupuesto={presupuesto} disponible={disponible} gastado={gastado} />
             :<Presupuesto
               presupuesto={presupuesto}
               setPresupuesto={setPresupuesto}
@@ -56,13 +91,13 @@ export const Planificador : FC = () => {
           }
         </View>
         {isValid&&(
-          <ListadoGastos gastos={gastos}/>
+          <ListadoGastos gastos={gastos} setModal={setModal} setGasto={setGasto}/>
         )}
       </ScrollView>
 
       {modal&&(
           <Modal visible={modal} animationType='slide'>
-            <Formulario gasto={gasto} setGasto={setGasto} setModal={setModal} handleGasto={handleGasto}/>
+            <Formulario gasto={gasto} setGasto={setGasto} setModal={setModal} handleGasto={handleGasto} deleteGasto={deleteGasto}/>
           </Modal>
         )
       }
